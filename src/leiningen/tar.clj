@@ -4,10 +4,13 @@
             [leiningen.core.classpath :as classpath]
             [leiningen.core.project :as project]
             [leiningen.jar :as jar]
-            [leiningen.uberjar :as uberjar])
+            [leiningen.uberjar :as uberjar]
+            [leiningen.ring.uberjar :as ruberjar]
+            [leiningen.ring.jar :as rjar])
   (:import (java.io ByteArrayOutputStream File FileOutputStream)
            (java.util.zip GZIPOutputStream)
            (org.apache.tools.tar TarEntry TarOutputStream)))
+
 
 (def cwd (System/getProperty "user.dir"))
 
@@ -104,18 +107,25 @@
     files))
 
 (defn generate-jar [project]
-  (let [options (:tar project)]
-    (if (:uberjar options)
-      (uberjar/uberjar project)
-      (find-jar (jar/jar project)))))
+  (if (:ring project)
+    (let [options (:tar project)]
+      (if (:uberjar options)
+        (ruberjar/uberjar project)
+        (find-jar (rjar/jar project))))
+    (let [options (:tar project)]
+          (if (:uberjar options)
+            (uberjar/uberjar project)
+            (find-jar (jar/jar project))))))
 
 (defn add-jars [project tar path jar]
-  (let [options (:tar project)]
-    (add-directory tar (str path "/lib"))
-    (add-file tar (str path "/lib") (io/file jar))
+  (let [options (:tar project)
+        jar-path (str path
+                      (or (:jar-path options) "/lib"))]
+    (add-directory tar jar-path)
+    (add-file tar jar-path (io/file jar))
     (if-not (:uberjar options)
       (doseq [j (jars-for project)]
-        (add-file tar (str path "/lib") j)))))
+        (add-file tar jar-path j)))))
 
 (defn- file-suffix
   "Take the name of given keyword fmt and replace every dash with a
@@ -141,7 +151,9 @@
     name-arg-val
     (release-name project)))
 
-(defn tar [project & args]
+(defn tar
+  "Package up project's files into a tar file"
+  [project & args]
   (add-build-info project)
   (let [options (:tar project)
         fmt (or (keyword (:format options)) :tar)
@@ -160,5 +172,6 @@
       (doseq [p (file-seq (io/file (:root project) "pkg"))]
         (add-file tar tar-path p))
       ;; and whatever jars should be included
-      (add-jars project tar tar-path jar)
-      (println "Wrote" (.getCanonicalPath tar-file)))))
+      (add-jars project tar tar-path jar))
+    (println "Wrote" (.getCanonicalPath tar-file))
+    (.getCanonicalPath tar-file)))

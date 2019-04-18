@@ -1,3 +1,17 @@
+_This project is derived from [technomancy/lein-tar](https://github.com/technomancy/lein-tar)._
+
+[![Clojars Project](https://img.shields.io/clojars/v/carlzhc/lein-tar.svg)](https://clojars.org/carlzhc/lein-tar)
+
+
+Features added:
+
+* keyword `:jar-path` specifics the relative path of jar files, by default it is `/lib`
+* use `ring jar` or `ring uberjar` to generate jar files if ring configuration is found
+  in your `project.clj`
+
+*README from technomancy/lein-tar*
+---
+
 # What is lein-tar
 
     How far could you take a jar if the jar was in a tar? Possibly as
