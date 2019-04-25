@@ -1,6 +1,7 @@
 (ns leiningen.tar
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
+            [leiningen.core.main :as lein]
             [leiningen.core.classpath :as classpath]
             [leiningen.core.project :as project]
             [leiningen.jar :as jar]
@@ -169,9 +170,13 @@
     (with-open [tar (TarOutputStream. (out-stream fmt tar-file))]
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       ;; and add everything from pkg
-      (doseq [p (file-seq (io/file (:root project) "pkg"))]
-        (add-file tar tar-path p))
-      ;; and whatever jars should be included
-      (add-jars project tar tar-path jar))
+      (try
+        (doseq [p (file-seq (io/file (:root project) "pkg"))]
+          (add-file tar tar-path p))
+        ;; and whatever jars should be included
+        (add-jars project tar tar-path jar)
+        (catch java.io.IOException e
+          (.delete tar-file)
+          (lein/abort (str e)))))
     (println "Wrote" (.getCanonicalPath tar-file))
     (.getCanonicalPath tar-file)))
